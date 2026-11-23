@@ -1,0 +1,42 @@
+From da8386dbaa3697cf69ffd7da96b4c9eebce8bf60 Mon Sep 17 00:00:00 2001
+From: "Claude (for Zenbook A16 owner)" <noreply@anthropic.com>
+Date: Mon, 23 Nov 2026 21:50:27 +0000
+Subject: [PATCH 2/3] arm64: dts: qcom: glymur: Drop cluster_cl5 idle state
+ from CPU clusters
+
+The cluster_cl5 idle state freezes and then resets the ASUS Zenbook A16
+(UX3607OA) every few minutes in use, the same hang-then-reset that
+hamoa drops cluster_cl5 for. With every CPU idle state disabled at
+runtime the laptop ran without a reset; drop the cluster state here and
+keep the per-CPU retention state.
+---
+ arch/arm64/boot/dts/qcom/glymur.dtsi | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/qcom/glymur.dtsi b/arch/arm64/boot/dts/qcom/glymur.dtsi
+index 212f9fbad..68bae8ba4 100644
+--- a/arch/arm64/boot/dts/qcom/glymur.dtsi
++++ b/arch/arm64/boot/dts/qcom/glymur.dtsi
+@@ -568,19 +568,16 @@ cpu_pd17: power-domain-cpu17 {
+ 		cluster0_pd: power-domain-cpu-cluster0 {
+ 			#power-domain-cells = <0>;
+ 			power-domains = <&system_pd>;
+-			domain-idle-states = <&cluster_cl5>;
+ 		};
+ 
+ 		cluster1_pd: power-domain-cpu-cluster1 {
+ 			#power-domain-cells = <0>;
+ 			power-domains = <&system_pd>;
+-			domain-idle-states = <&cluster_cl5>;
+ 		};
+ 
+ 		cluster2_pd: power-domain-cpu-cluster2 {
+ 			#power-domain-cells = <0>;
+ 			power-domains = <&system_pd>;
+-			domain-idle-states = <&cluster_cl5>;
+ 		};
+ 
+ 		system_pd: power-domain-system {
+-- 
+2.56.1
+

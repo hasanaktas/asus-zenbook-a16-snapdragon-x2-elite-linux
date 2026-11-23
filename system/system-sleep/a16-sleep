@@ -1,0 +1,47 @@
+#!/bin/sh
+# ASUS Zenbook A16 (UX3607OA) sleep helper, installed by hand.
+# Before s2idle: remove the Wi-Fi card's PCIe root port (and with it the card), unbind the card reader's USB controller
+# (a400000.usb) and let the CPUs use their idle states so the SoC can go deeper.
+# After wake: on a kernel that still has cluster_cl5, turn the idle states off
+# again (it freezes and resets the laptop in use, see a16-no-cluster-idle.service),
+# then bring the card reader and Wi-Fi back.
+WIFI=/sys/bus/pci/devices/0004:01:00.0
+PORT=/sys/bus/pci/devices/0004:00:00.0
+DRV=/sys/bus/platform/drivers/xhci-hcd
+log() { logger -t a16-sleep "$*"; }
+idle() { for f in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do echo "$1" > "$f"; done; }
+# True while the running device tree still gives the clusters cluster_cl5.
+cl5() { [ -e /sys/firmware/devicetree/base/psci/power-domain-cpu-cluster0/domain-idle-states ]; }
+reader() {
+	for x in /sys/bus/platform/devices/xhci-hcd.*; do
+		case "$(readlink -f "$x")" in */a400000.usb/*) basename "$x"; return;; esac
+	done
+}
+
+case "$1" in
+pre)
+	if [ -d "$PORT" ]; then
+		echo 1 > "$PORT/remove" && log "pre: removed Wi-Fi PCIe port"
+	fi
+	X=$(reader)
+	if [ -n "$X" ] && [ -e "/sys/bus/platform/devices/$X/driver" ]; then
+		echo "$X" > "$DRV/unbind" && log "pre: unbound $X (card reader)"
+	fi
+	idle 0
+	log "pre: CPU idle states on"
+	;;
+post)
+	if cl5; then
+		idle 1
+		log "post: CPU idle states off (cluster_cl5 present)"
+	fi
+	X=$(reader)
+	if [ -n "$X" ] && [ ! -e "/sys/bus/platform/devices/$X/driver" ]; then
+		echo "$X" > "$DRV/bind" && log "post: rebound $X (card reader)"
+	fi
+	echo 1 > /sys/bus/pci/rescan
+	sleep 2
+	if [ -d "$WIFI" ]; then log "post: Wi-Fi back"; else log "post: Wi-Fi MISSING after rescan"; fi
+	;;
+esac
+exit 0

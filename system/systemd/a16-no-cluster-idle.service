@@ -1,0 +1,13 @@
+[Unit]
+Description=Zenbook A16: keep CPUs out of the idle state that freezes and resets the laptop
+# Only on a kernel whose device tree still gives the CPU clusters cluster_cl5.
+# The locally built 7.3.0-78.1-omarchy drops it, so this does nothing there.
+ConditionPathExists=/sys/firmware/devicetree/base/psci/power-domain-cpu-cluster0/domain-idle-states
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for f in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do echo 1 > "$f"; done'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

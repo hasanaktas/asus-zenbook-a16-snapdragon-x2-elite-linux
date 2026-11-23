@@ -1,0 +1,33 @@
+From 091191ef68191c2925b8ac7123c10fe453c577d8 Mon Sep 17 00:00:00 2001
+From: "Claude (for Zenbook A16 owner)" <noreply@anthropic.com>
+Date: Mon, 23 Nov 2026 21:50:33 +0000
+Subject: [PATCH 3/3] arm64: efi: Power off the ASUS Zenbook A16 through PSCI
+
+The ASUS Zenbook A16 (UX3607OA) reboots when Linux powers it off
+through the UEFI ResetSystem() runtime service: systemd logs
+"System is powering down" and the next boot starts a second later.
+Skip the EFI power-off handler on it, as on the Inspiron 14 3420, so
+PSCI SYSTEM_OFF turns it off.
+---
+ arch/arm64/kernel/efi.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index fc81e9a4a..e37ceb4a8 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -158,8 +158,9 @@ int __init efi_set_mapping_permissions(struct mm_struct *mm,
+  */
+ bool efi_poweroff_required(void)
+ {
+-	/* Its ResetSystem(EfiResetShutdown) reboots instead */
+-	if (of_machine_is_compatible("dell,inspiron-3420-sc8180xp"))
++	/* Their ResetSystem(EfiResetShutdown) reboots instead */
++	if (of_machine_is_compatible("dell,inspiron-3420-sc8180xp") ||
++	    of_machine_is_compatible("asus,zenbook-a16-ux3607oa"))
+ 		return false;
+ 
+ 	return efi_enabled(EFI_RUNTIME_SERVICES);
+-- 
+2.56.1
+
