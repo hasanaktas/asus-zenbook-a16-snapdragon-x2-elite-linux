@@ -13,6 +13,14 @@ installed over the whole disk.
   limiting to Wi-Fi 6 works.
 - Speakers need the ADSP firmware, the A16 topology and UCM.
 
+## The image used
+
+`stonking-desktop-arm64+x1e-20261113.iso` (kernel `7.3.0-31-qcom-x1e`; it
+carries the A16 DTB, `cluster_cl5` included, and expects the DSP firmware at
+`qcom/glymur/ASUSTeK/UX3607OA/`), rebuilt with [`build-iso.sh`](build-iso.sh):
+`cpuidle.off=1` on the command line and the A16 Wi-Fi board data and DSP
+firmware in the base layer, so the live session has Wi-Fi and does not freeze.
+
 ## Plan
 
 1. Install, and record what works out of the box on the current image.
