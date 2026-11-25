@@ -13,8 +13,9 @@ With s2idle and the hook in `system/system-sleep/a16-sleep`:
 - after wake: on a kernel that still has `cluster_cl5`, disable the CPU idle
   states again; rebind the card reader; rescan PCI.
 
-Sleep config: `MemorySleepMode=s2idle` in `/etc/systemd/sleep.conf.d/`, and
-Omarchy's `omarchy-sleep-disabled.conf` renamed away.
+Sleep config: [`system/sleep.conf.d/zenbook-a16-s2idle.conf`](../system/sleep.conf.d/zenbook-a16-s2idle.conf)
+(`MemorySleepMode=s2idle`) in `/etc/systemd/sleep.conf.d/`, and Omarchy's
+`omarchy-sleep-disabled.conf` renamed away (an Omarchy update may restore it).
 
 Three suspends of a few seconds to 20 minutes all woke cleanly with Wi-Fi back.
 

@@ -4,16 +4,17 @@ Kernel patches, system configuration and notes for running Linux on the
 **Snapdragon X2 Elite** Zenbook A16, model **UX3607OA** (Glymur SoC). The AMD
 Zenbook A16 models are different machines and nothing here applies to them.
 
-The kernel patches are distribution-independent. They were built and tested
-on Omarchy's `linux-omarchy` 7.3-78; [`ubuntu/`](ubuntu/) tracks the move to
-Ubuntu Concept.
+The kernel patches are distribution-independent. They are built and tested on
+Omarchy's `linux-omarchy`: 7.3.6-2 now, and 7.3-78 before it.
+[`ubuntu/`](ubuntu/) holds notes from a trial of Ubuntu Concept.
 
-## Status on linux-omarchy 7.3-78 + these patches
+## Status on linux-omarchy 7.3.6-2 + these patches
 
 | Area | State | Notes |
 |---|---|---|
 | Random freeze, then reset every few minutes | **Fixed** | [docs/freeze-cluster-cl5.md](docs/freeze-cluster-cl5.md) |
-| Cameras (OV02C10 RGB, HM1092 IR) | **Works** | [docs/camera.md](docs/camera.md) |
+| GPU corruption and stale frames on stock 7.3.6 | **Fixed** (revert) | [docs/gpu-corruption-7.3.6.md](docs/gpu-corruption-7.3.6.md), [omacom/omarchy#20199](https://github.com/omacom/omarchy/issues/20199) |
+| Cameras (OV02C10 RGB, HM1092 IR) | **Works**; RGB image is noisy in low light (software ISP, no denoise) | [docs/camera.md](docs/camera.md) |
 | Lid-close suspend (s2idle) | Works, shallow | [docs/sleep.md](docs/sleep.md) |
 | Power off reboots instead | Patch applied, unconfirmed | [docs/poweroff.md](docs/poweroff.md) |
 | Wi-Fi, Bluetooth, keyboard, touchpad, display, speakers | Works | Stock linux-omarchy |
@@ -21,13 +22,15 @@ Ubuntu Concept.
 ## Layout
 
 ```
-patches/omarchy-7.3-78/      applies on linux-omarchy 7.3-78
+patches/omarchy-7.3.6-2/     applies on linux-omarchy 7.3.6-2 (current)
   0001-camera-stack-...      the camera series as one diff
   0002-...cluster_cl5...     freeze fix
   0003-...Power-off...       power-off fix
+  0004-Revert-...RPMH...     GPU corruption fix
+patches/omarchy-7.3-78/      the same series for linux-omarchy 7.3-78
   upstream-camera/           the individual camera patches, original authors
 kernel/config-a16.fragment   options the camera patches need
-system/                      systemd unit, sleep hook, libcamera tuning
+system/                      systemd unit, sleep config and hook, libcamera tuning
 docs/                        findings, and how the kernel was built
 ubuntu/                      Ubuntu Concept bring-up
 ```

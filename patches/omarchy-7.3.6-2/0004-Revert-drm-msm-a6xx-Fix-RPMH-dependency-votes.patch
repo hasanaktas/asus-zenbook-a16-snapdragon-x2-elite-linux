@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: asus-zenbook-a16-snapdragon-x2-elite-linux <30148248+hasanaktas@users.noreply.github.com>
+Date: Thu, 26 Nov 2026 00:00:00 +0000
+Subject: [PATCH] Revert "drm/msm/a6xx: Fix RPMH dependency votes"
+
+This reverts 7.3.6's b91648f74186 (upstream eab0aff8965e) on the ASUS
+Zenbook A16 (UX3607OA, Glymur, A8x GPU). With it, the launcher shows
+stale frames and GPU-rendered content (Chrome's page area) turns into a
+tile pattern as soon as RPMh power-domain and interconnect sync_state
+drop the boot-time votes. Reverting only this commit on 7.3.6-2 fixes
+it; see docs/gpu-corruption-7.3.6.md and omacom/omarchy#20199.
+
+Before the commit the dependency votes were resolved against the GMU's
+OPP table, which holds none of the GPU frequencies, so every corner
+voted MX index 0. The commit resolves them against the GPU's OPP table;
+on this board the resulting votes break rendering. Which side is wrong
+is not known yet.
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gmu.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1918,13 +1918,13 @@
+ 	ret = a6xx_gmu_rpmh_arc_votes_init(&gpu->pdev->dev, gmu->gx_arc_votes,
+ 		gmu->gpu_freqs, gmu->nr_gpu_freqs, "gfx.lvl", sec_id);
+ 
+-	ret |= a6xx_gmu_rpmh_dep_votes_init(&gpu->pdev->dev, gmu->dep_arc_votes,
+-		gmu->gpu_freqs, gmu->nr_gpu_freqs);
+-
+ 	/* Build the CX votes */
+ 	ret |= a6xx_gmu_rpmh_arc_votes_init(gmu->dev, gmu->cx_arc_votes,
+ 		gmu->gmu_freqs, gmu->nr_gmu_freqs, "cx.lvl", "mx.lvl");
+ 
++	ret |= a6xx_gmu_rpmh_dep_votes_init(gmu->dev, gmu->dep_arc_votes,
++		gmu->gpu_freqs, gmu->nr_gpu_freqs);
++
+ 	/* Build the interconnect votes */
+ 	if (info->bcms && gmu->nr_gpu_bws > 1)
+ 		ret |= a6xx_gmu_rpmh_bw_votes_init(adreno_gpu, info, gmu);
+-- 
+2.56.1
+
