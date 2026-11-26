@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: asus-zenbook-a16-snapdragon-x2-elite-linux <30148248+hasanaktas@users.noreply.github.com>
+Date: Thu, 26 Nov 2026 00:00:00 +0000
+Subject: [PATCH] drm/msm/a6xx: Clamp the MX dependency vote (7.3.6 backport)
+
+The 7.3.6 stable backport of eab0aff8965e ("drm/msm/a6xx: Fix RPMH
+dependency votes", b91648f74186) resolves the GPU corners against the
+GPU OPP table. On the Zenbook A16 (Glymur, X2 Elite) the 1.85 GHz corner
+needs MX level 456, above the highest MX corner (452), so
+a6xx_gmu_rpmh_dep_votes_init() fails with "Mx Level 456 not found in the
+RPMh list" and leaves the GPU perf table incomplete. Rendering breaks
+once RPMh and interconnect sync_state drop the boot-time votes; see
+docs/gpu-corruption-7.3.6.md and omacom/omarchy#20199.
+
+Clamp to the highest non-zero MX level instead, as mainline 86f80884
+("drm/msm/a6xx: Clamp MX dependency vote") does. This is the adaptation
+from omacom/omarchy-pkgs#3545 (romanstingler), tested here on 7.3.6-2.
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gmu.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1822,14 +1822,16 @@
+ 		}
+ 
+ 		if (j == count) {
+-			DRM_DEV_ERROR(dev,
+-				      "Mx Level %u not found in the RPMh list\n",
+-				      level);
+-			DRM_DEV_ERROR(dev, "Available levels:\n");
++			/*
++			 * The GPU arc level can exceed the highest available MX
++			 * corner (e.g. the 1.85 GHz bin on X2-90). Clamp to the
++			 * highest non-zero MX vote instead of failing.
++			 * Upstream: 86f80884 ("drm/msm/a6xx: Clamp MX dependency vote")
++			 */
++			index = 0;
+ 			for (j = 0; j < count; j++)
+-				DRM_DEV_ERROR(dev, "  %u\n", mx[j]);
+-
+-			return -EINVAL;
++				if (mx[j])
++					index = j;
+ 		}
+ 
+ 		/* Construct the vote */
+-- 
+2.56.1
+

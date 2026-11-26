@@ -31,19 +31,19 @@ completed in every run.
 | 7.3.6-2.2 | revert `b91648f74186` + `21291ab009bd` | clean |
 | 7.3.6-2.3 | revert `b91648f74186` only | clean |
 
-`a6xx_gmu_get_arc_level()` resolves a frequency against the OPP table of the
-device it is given, and returns 0 when the frequency is not there.
+Every affected boot logs the reason:
 
-- Before the commit it was given `gmu->dev`. The GMU's OPP table holds none of
-  the GPU frequencies, so every GPU corner voted MX index 0.
-- The commit passes the GPU device instead, so the corners get real MX
-  indices.
-- These votes reach the GMU as the second word of each GX entry in
-  `HFI_TABLE_GPU_PERF`.
+```
+adreno 3d00000.gpu: *ERROR* Mx Level 456 not found in the RPMh list
+adreno 3d00000.gpu: *ERROR* Available levels: 0 16 64 128 192 256 320 384 416 448 452
+```
 
-On this board the "correct" votes break rendering. It is not yet known
-whether the fault lies in the vote encoding, cmd-db's MX levels, the Glymur
-GPU OPP levels or the GMU firmware.
+The commit resolves the GPU corners against the GPU's own OPP table. Before
+it, every corner wrongly resolved to level 0. The 1.85 GHz corner now asks
+for MX level 456, which is above the highest MX corner (452), so
+`a6xx_gmu_rpmh_dep_votes_init()` returns early. That leaves the GMU's
+performance table incomplete. Mainline later fixed this with `86f80884`
+("drm/msm/a6xx: Clamp MX dependency vote"), but 7.3.6 does not have it.
 
 ## Why the problem can hide
 
@@ -73,4 +73,14 @@ qnoc-glymur 2000000.interconnect: sync_state() pending due to acb6000.isp
 
 ## Fix here
 
-`patches/omarchy-7.3.6-2/0004-Revert-drm-msm-a6xx-Fix-RPMH-dependency-votes.patch`.
+`patches/omarchy-7.3.6-2/0004-drm-msm-a6xx-Clamp-the-MX-dependency-vote.patch`
+clamps the vote to the highest MX level, as `86f80884` does. It is the
+adaptation from [omacom/omarchy-pkgs#3545](https://github.com/omacom/omarchy-pkgs/pull/3545).
+
+Tested on 7.3.6-2.5 with the RPMh power domains and interconnects synced:
+
+- the `Mx Level` error is gone;
+- the GPU reaches 1.85 GHz;
+- the launcher and Chrome render cleanly.
+
+Before that, reverting `b91648f74186` was the stopgap (7.3.6-2.2 and -2.3).
